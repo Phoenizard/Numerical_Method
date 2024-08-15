@@ -13,7 +13,7 @@ path_dict = {
 
 def load_data(l=64, name='example_2_40D', device='cuda'):
     path, D = path_dict[name]
-    X_train, Y_train, X_test, Y_test = torch.load(path)    
+    X_train, Y_train, X_test, Y_test = torch.load(path, weights_only=True)    
     # 将数据移动到适当的设备
     X_train = X_train.to(device)
     Y_train = Y_train.to(device)

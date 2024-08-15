@@ -6,12 +6,12 @@ config = {
 
     # Model Hyperparameters
     "m": 100,
-    "batch_size": 256,
-    "epochs": 10,
+    "batch_size": 64,
+    "epochs": 10000,
     "lr": 1,
 
     # SAV related parameters
-    "C": 100,
+    "C": 1,
     "_lambda": 4,
     "ratio_n": 0.99,
 
@@ -22,8 +22,8 @@ config = {
 
     # SPM related parameters
     "J": 10,
-    "h": 0.000001,
+    "h": 0.0001,
 
     # Add more parameters here if needed
-    "recording": False
+    "recording": True
 }
