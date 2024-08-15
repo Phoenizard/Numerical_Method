@@ -5,7 +5,9 @@ from torch.utils.data import DataLoader, TensorDataset
 path_dict = {
     'example_2_40D': ['./data/dataset_2_40D.pt', 40],
     'example_1_40D': ['./data/dataset_1_40D.pt', 40],
-    'example_1_20D': ['./data/dataset_1_20D.pt', 20]
+    'example_1_20D': ['./data/dataset_1_20D.pt', 20],
+    'example_3_40D': ['./data/dataset_3_40D.pt', 40],
+    'example_3_20D': ['./data/dataset_3_20D.pt', 20]
 }
 
 

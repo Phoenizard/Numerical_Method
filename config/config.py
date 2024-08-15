@@ -2,16 +2,16 @@
 
 config = {
     # Dataset name
-    "dataset_name": "example_2_40D",
+    "dataset_name": "example_3_20D",
 
     # Model Hyperparameters
-    "m": 100,
-    "batch_size": 64,
+    "m": 10000,
+    "batch_size": 256,
     "epochs": 10,
     "lr": 1,
 
     # SAV related parameters
-    "C": 1,
+    "C": 100,
     "_lambda": 4,
     "ratio_n": 0.99,
 
@@ -22,7 +22,7 @@ config = {
 
     # SPM related parameters
     "J": 10,
-    "h": 0.0001,
+    "h": 0.000001,
 
     # Add more parameters here if needed
     "recording": False
