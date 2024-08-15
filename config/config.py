@@ -2,10 +2,10 @@
 
 config = {
     # Dataset name
-    "dataset_name": "example_3_20D",
+    "dataset_name": "example_2_40D",
 
     # Model Hyperparameters
-    "m": 10000,
+    "m": 100,
     "batch_size": 256,
     "epochs": 10,
     "lr": 1,

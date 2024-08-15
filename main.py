@@ -28,7 +28,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def train_process(model, train_loader, X_train, Y_train, X_test, Y_test, args, method: function):
+def train_process(model, train_loader, X_train, Y_train, X_test, Y_test, args, method):
     if args.recording:
         method_name = method.__name__
         init_wandb(args.__dict__, title=f'{method_name}_Test_py', notes="Test for new coding scheme of project")
@@ -45,15 +45,16 @@ def main():
     model_1 = Simple_Perceptron(D+1, args.m, 1).to(device)
     model_2 = Simple_Perceptron(D+1, args.m, 1).to(device)
     #=========Training=====
-    process = []
-    process.append(mp.Process(target=train_process, args=(model_1, train_loader, X_train, Y_train, X_test, Y_test, args, PM_Euler)))
-    process.append(mp.Process(target=train_process, args=(model_2, train_loader, X_train, Y_train, X_test, Y_test, args, PM_SAV)))
+    PM_SAV(model_1, train_loader, X_train, Y_train, X_test, Y_test, args)
+    # process = []
+    # process.append(mp.Process(target=train_process, args=(model_1, train_loader, X_train, Y_train, X_test, Y_test, args, PM_Euler)))
+    # process.append(mp.Process(target=train_process, args=(model_2, train_loader, X_train, Y_train, X_test, Y_test, args, PM_SAV)))
 
-    for p in process:
-        p.start()
+    # for p in process:
+    #     p.start()
 
-    for p in process:
-        p.join()
+    # for p in process:
+    #     p.join()
 
 if __name__ == '__main__':
     main()

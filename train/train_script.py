@@ -2,6 +2,7 @@ from optimizers.adaptation import adaptation, anti_adaptation
 from optimizers.space_discretization import PM, SPM
 from optimizers.time_discretization import Euler, SAV, ReSAV, RelSAV
 from utils import validate
+import torch
 
 def PM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
@@ -14,8 +15,12 @@ def PM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 def PM_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
+        flag = True
         for x, y in train_loader:
             loss = PM(model, x, y)
+            if flag:
+                model.r = torch.sqrt(loss + args.C)
+                flag = False
             N_a, N_w, lr = anti_adaptation(model, args.lr)
             SAV(model, N_a, N_w, lr, loss=loss, C=args.C, _lambda=args._lambda)
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True)
@@ -33,8 +38,12 @@ def PM_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 def PM_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
         ellipsis_set = []
+        flag = True
         for x, y in train_loader:
             loss = PM(model, x, y)
+            if flag:
+                model.r = torch.sqrt(loss + args.C)
+                flag = False
             N_a, N_w, lr = anti_adaptation(model, args.lr)
             ellipsis_0 = RelSAV(model, N_a, N_w, lr, loss=loss, X=x, Y=y, ratio_n=args.ratio_n, C=args.C, _lambda=args._lambda, )
             ellipsis_set.append(ellipsis_0)
@@ -52,8 +61,12 @@ def SPM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 def SPM_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
+        flag = True
         for x, y in train_loader:
             loss = SPM(model, x, y, J=args.J, h=args.h)
+            if flag:
+                model.r = torch.sqrt(loss + args.C)
+                flag = False
             N_a, N_w, lr = anti_adaptation(model, args.lr)
             SAV(model, N_a, N_w, lr, loss=loss, C=args.C, _lambda=args._lambda)
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True)
@@ -71,7 +84,11 @@ def SPM_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 def SPM_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
         ellipsis_set = []
+        flag = True
         for x, y in train_loader:
+            if flag:
+                model.r = torch.sqrt(loss + args.C)
+                flag = False
             loss = SPM(model, x, y, J=args.J, h=args.h)
             N_a, N_w, lr = anti_adaptation(model, args.lr)
             ellipsis_0 = RelSAV(model, N_a, N_w, lr, loss=loss, X=x, Y=y, ratio_n=args.ratio_n, C=args.C, _lambda=args._lambda)
@@ -98,8 +115,12 @@ def PM_A_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
         cnt = 0
         lr_set = []
+        flag = True
         for x, y in train_loader:
             loss = PM(model, x, y)
+            if flag:
+                model.r = torch.sqrt(loss + args.C)
+                flag = False
             N_a, N_w, adp_lr = adaptation(model, args.lr, cnt, epsilon=args.epsilon, beta_1=args.beta_1, beta_2=args.beta_2)
             lr_set.append(adp_lr)
             SAV(model, N_a, N_w, adp_lr, loss=loss, C=args.C, _lambda=args._lambda)
@@ -129,8 +150,12 @@ def PM_A_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         cnt = 0
         lr_set = []
         ellipsis_set = []
+        flag = True
         for x, y in train_loader:
             loss = PM(model, x, y)
+            if flag:
+                model.r = torch.sqrt(loss + args.C)
+                flag = False
             N_a, N_w, adp_lr = adaptation(model, args.lr, cnt, epsilon=args.epsilon, beta_1=args.beta_1, beta_2=args.beta_2)
             lr_set.append(adp_lr)
             ellipsis_0 = RelSAV(model, N_a, N_w, adp_lr, loss=loss, X=x, Y=y, ratio_n=args.ratio_n, C=args.C, _lambda=args._lambda)
@@ -160,8 +185,12 @@ def SPM_A_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
         cnt = 0
         lr_set = []
+        flag = True
         for x, y in train_loader:
             loss = SPM(model, x, y, J=args.J, h=args.h)
+            if flag:
+                model.r = torch.sqrt(loss + args.C)
+                flag = False
             N_a, N_w, adp_lr = adaptation(model, args.lr, cnt, epsilon=args.epsilon, beta_1=args.beta_1, beta_2=args.beta_2)
             lr_set.append(adp_lr)
             SAV(model, N_a, N_w, adp_lr, loss=loss, C=args.C, _lambda=args._lambda)
@@ -191,8 +220,12 @@ def SPM_A_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         cnt = 0
         lr_set = []
         ellipsis_set = []
+        flag = True
         for x, y in train_loader:
             loss = SPM(model, x, y, J=args.J, h=args.h)
+            if flag:
+                model.r = torch.sqrt(loss + args.C)
+                flag = False
             N_a, N_w, adp_lr = adaptation(model, args.lr, cnt, epsilon=args.epsilon, beta_1=args.beta_1, beta_2=args.beta_2)
             lr_set.append(adp_lr)
             ellipsis_0 = RelSAV(model, N_a, N_w, adp_lr, loss=loss, X=x, Y=y, ratio_n=args.ratio_n, C=args.C, _lambda=args._lambda)
