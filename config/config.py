@@ -7,7 +7,7 @@ config = {
     # Model Hyperparameters
     "m": 100,
     "batch_size": 64,
-    "epochs": 10,
+    "epochs": 10000,
     "lr": 1,
 
     # SAV related parameters
@@ -25,5 +25,5 @@ config = {
     "h": 0.0001,
 
     # Add more parameters here if needed
-    "recording": False
+    "recording": True
 }

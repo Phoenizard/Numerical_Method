@@ -28,26 +28,29 @@ def parse_args():
     return parser.parse_args()
 
 
-def train_process(model, train_loader, X_train, Y_train, X_test, Y_test, args, method: function):
-    if args.recording:
-        method_name = method.__name__
-        init_wandb(args.__dict__, title=f'{method_name}_Test_py', notes="Test for new coding scheme of project")
-    method(model, train_loader, X_train, Y_train, X_test, Y_test, args)
-
-
-def main():
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f'Using {device} device')
+def train_process(method, device):
     args = parse_args()
     #=========Load Data=========
     train_loader, X_train, Y_train, X_test, Y_test, D = load_data(l=args.batch_size, name=args.dataset_name, device=device)
+    model = Simple_Perceptron(D+1, args.m, 1).to(device)
     #=========Model Initialization=========
-    model_1 = Simple_Perceptron(D+1, args.m, 1).to(device)
-    model_2 = Simple_Perceptron(D+1, args.m, 1).to(device)
-    #=========Training=====
+    if args.recording:
+        method_name = method.__name__
+        init_wandb(args.__dict__, title=f'{method_name}_Test', notes="Test for new coding scheme of project")
+    method(model, train_loader, X_train, Y_train, X_test, Y_test, args)
+
+def main():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f'Using {device} device')
+
+    # PM_Euler(model_1, train_loader, X_train, Y_train, X_test, Y_test, args)
     process = []
-    process.append(mp.Process(target=train_process, args=(model_1, train_loader, X_train, Y_train, X_test, Y_test, args, PM_Euler)))
-    process.append(mp.Process(target=train_process, args=(model_2, train_loader, X_train, Y_train, X_test, Y_test, args, PM_SAV)))
+    process.append(mp.Process(target=train_process, args=(PM_SAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_ReSAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_RelSAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_A_SAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_A_ReSAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_A_RelSAV, device)))
 
     for p in process:
         p.start()
@@ -56,4 +59,6 @@ def main():
         p.join()
 
 if __name__ == '__main__':
+    mp.set_start_method('spawn')
+    # Adam()
     main()
