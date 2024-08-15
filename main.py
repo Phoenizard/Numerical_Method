@@ -1,0 +1,59 @@
+import torch
+from modules.Simple_Perceptron import Simple_Perceptron
+from data.grip_data import load_data
+from config.config import config
+import argparse
+from utils import init_wandb
+from train.train_script import PM_Euler, PM_SAV, PM_ReSAV, PM_RelSAV, SPM_Euler, SPM_SAV, SPM_ReSAV
+from train.train_script import PM_A_Euler, PM_A_SAV, PM_A_ReSAV, PM_A_RelSAV, SPM_A_Euler, SPM_A_SAV, SPM_A_ReSAV
+import torch.multiprocessing as mp
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Training Script")
+    
+    parser.add_argument("--dataset_name", type=str, default=config["dataset_name"], help="Name of the dataset")
+    parser.add_argument("--m", type=int, default=config["m"], help="Model hyperparameter m")
+    parser.add_argument("--batch_size", type=int, default=config["batch_size"], help="Batch size")
+    parser.add_argument("--epochs", type=int, default=config["epochs"], help="Number of training epochs")
+    parser.add_argument("--lr", type=float, default=config["lr"], help="Learning rate")
+    parser.add_argument("--C", type=int, default=config["C"], help="SAV parameter C")
+    parser.add_argument("--_lambda", type=int, default=config["_lambda"], help="SAV parameter lambda")
+    parser.add_argument("--ratio_n", type=float, default=config["ratio_n"], help="RelSAV parameter ratio_n")
+    parser.add_argument("--beta_1", type=float, default=config["beta_1"], help="Adaptive parameter beta_1")
+    parser.add_argument("--beta_2", type=float, default=config["beta_2"], help="Adaptive parameter beta_2")
+    parser.add_argument("--epsilon", type=float, default=config["epsilon"], help="Adaptive parameter epsilon")
+    parser.add_argument("--J", type=int, default=config["J"], help="SPM parameter J")
+    parser.add_argument("--h", type=float, default=config["h"], help="SPM parameter h")
+    parser.add_argument("--recording", type=bool, default=config["recording"], help="Whether to record the training process")
+    return parser.parse_args()
+
+
+def train_process(model, train_loader, X_train, Y_train, X_test, Y_test, args, method: function):
+    if args.recording:
+        method_name = method.__name__
+        init_wandb(args.__dict__, title=f'{method_name}_Test_py', notes="Test for new coding scheme of project")
+    method(model, train_loader, X_train, Y_train, X_test, Y_test, args)
+
+
+def main():
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f'Using {device} device')
+    args = parse_args()
+    #=========Load Data=========
+    train_loader, X_train, Y_train, X_test, Y_test, D = load_data(l=args.batch_size, name=args.dataset_name, device=device)
+    #=========Model Initialization=========
+    model_1 = Simple_Perceptron(D+1, args.m, 1).to(device)
+    model_2 = Simple_Perceptron(D+1, args.m, 1).to(device)
+    #=========Training=====
+    process = []
+    process.append(mp.Process(target=train_process, args=(model_1, train_loader, X_train, Y_train, X_test, Y_test, args, PM_Euler)))
+    process.append(mp.Process(target=train_process, args=(model_2, train_loader, X_train, Y_train, X_test, Y_test, args, PM_SAV)))
+
+    for p in process:
+        p.start()
+
+    for p in process:
+        p.join()
+
+if __name__ == '__main__':
+    main()
