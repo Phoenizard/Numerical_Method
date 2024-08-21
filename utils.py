@@ -10,7 +10,8 @@ def validate(model, X_train, Y_train, X_test, Y_test, epoch, is_recoard=False, i
             wandb.log({'epoch': epoch + 1,
                        'train_loss': train_loss, 
                        'test_loss': test_loss,
-                       'params_norm': model.get_norm()})
+                       'params_norm_W': model.get_norm()[0],
+                       'params_norm_a': model.get_norm()[1]})
             if is_SAV:
                 wandb.log({'r': model.r.item()})
             if is_adaptive:

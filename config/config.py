@@ -8,7 +8,7 @@ config = {
     "m": 100,
     "batch_size": 64,
     "epochs": 10000,
-    "lr": 1,
+    "lr": 0.4,
 
     # SAV related parameters
     "C": 1,
