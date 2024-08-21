@@ -20,15 +20,16 @@ def SAV(model: Simple_Perceptron, N_a, N_w, lr, loss, C=1, _lambda=0):
 
 
 def ESAV(model: Simple_Perceptron, N_a, N_w, lr, loss, _lambda=0):
-    theta_w_1 = model.W.data
-    theta_a_1 = model.a.data
-    b_a = r * N_a / torch.exp(loss)
-    b_w = r * N_w / torch.exp(loss)
+    linear_N_a = N_a / (1 + _lambda * lr)
+    linear_N_w = N_w / (1 + _lambda * lr)
+    theta_a_2 = - linear_N_a * lr / (torch.exp(loss))
+    theta_w_2 = - linear_N_w * lr / (torch.exp(loss))
+    #=========Update SAV R================
+    model.r = model.r / (1 + lr * (torch.sum(N_a * linear_N_a) + torch.sum(N_w * linear_N_w)))
     with torch.no_grad():
-        model.a.data = (theta_a_1 - lr * b_a) / (1 + lr * _lambda)
-        model.W.data = (theta_w_1 - lr * b_w) / (1 + lr * _lambda)
-        #=========Update SAV R================
-        r = torch.exp(torch.log(r) + torch.sum(b_a * (model.a - theta_a_1)) + torch.sum(b_w * (model.W - theta_w_1)))
+        #=========Update Params================
+        model.a += theta_a_2 * model.r.item()
+        model.W += theta_w_2 * model.r.item()
         model.a.grad.zero_()
         model.W.grad.zero_()
         

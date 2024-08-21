@@ -2,8 +2,8 @@ from modules import Simple_Perceptron
 import torch
 
 def anti_adaptation(model: Simple_Perceptron, lr):
-    N_a = model.a.grad
-    N_w = model.W.grad
+    N_a = model.a.grad.clone()
+    N_w = model.W.grad.clone()
     adp_lr = lr
     return N_a, N_w, adp_lr
 
