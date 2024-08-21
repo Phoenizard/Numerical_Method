@@ -29,4 +29,4 @@ class Simple_Perceptron(nn.Module):
 
     # 计算模型W和a的Norm
     def get_norm(self):
-        return torch.norm(self.W).item(), torch.norm(self.a).item()
+        return [torch.norm(self.W).item(), torch.norm(self.a).item()]

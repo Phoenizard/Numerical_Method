@@ -1,6 +1,6 @@
 from optimizers.adaptation import adaptation, anti_adaptation
 from optimizers.space_discretization import PM, SPM
-from optimizers.time_discretization import Euler, SAV, ReSAV, RelSAV, ESAV
+from optimizers.time_discretization import Euler, SAV, ReSAV, RelSAV, ESAV, MESAV
 from utils import validate
 import torch
 
@@ -34,6 +34,19 @@ def PM_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
                 flag = False
             N_a, N_w, lr = anti_adaptation(model, args.lr)
             ESAV(model, N_a, N_w, lr, loss=loss, _lambda=args._lambda)
+        validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, is_SAV=True)
+
+def PM_MESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
+    for epoch in range(args.epochs):
+        flag = True
+        for x, y in train_loader:
+            loss = PM(model, x, y)
+            if flag:
+                model.r = torch.exp(loss)
+                E_0 = abs(loss)
+                flag = False
+            N_a, N_w, lr = anti_adaptation(model, args.lr)
+            MESAV(model, N_a, N_w, lr, loss=loss, E_0=E_0, _lambda=args._lambda)
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, False)
 
 def PM_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
@@ -181,7 +194,26 @@ def PM_A_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         validate(model, X_train, Y_train, X_test, Y_test, epoch, 
                  is_recoard=args.recording, is_SAV=True, 
                  is_adaptive=True, adp_lr=sum(lr_set)/len(lr_set))
-        
+
+def PM_A_MEAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
+    for epoch in range(args.epochs):
+        cnt = 0
+        lr_set = []
+        flag = True
+        for x, y in train_loader:
+            loss = PM(model, x, y)
+            if flag:
+                model.r = torch.exp(loss)
+                E_0 = abs(loss)
+                flag = False
+            N_a, N_w, adp_lr = adaptation(model, args.lr, cnt, epsilon=args.epsilon, beta_1=args.beta_1, beta_2=args.beta_2)
+            lr_set.append(adp_lr)
+            MESAV(model, N_a, N_w, adp_lr, loss=loss, E_0=E_0, _lambda=args._lambda)
+            cnt += 1
+        validate(model, X_train, Y_train, X_test, Y_test, epoch, 
+                 is_recoard=args.recording, is_SAV=True, 
+                 is_adaptive=True, adp_lr=sum(lr_set)/len(lr_set))
+
 
 def PM_A_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):

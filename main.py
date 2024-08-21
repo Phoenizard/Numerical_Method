@@ -4,8 +4,8 @@ from data.grip_data import load_data
 from config.config import config
 import argparse
 from utils import init_wandb
-from train.train_script import PM_Euler, PM_ESAV, PM_SAV, PM_ReSAV, PM_RelSAV, SPM_Euler, SPM_ESAV, SPM_SAV, SPM_ReSAV
-from train.train_script import PM_A_Euler, PM_A_SAV, PM_A_ESAV, PM_A_ReSAV, PM_A_RelSAV, SPM_A_Euler, SPM_A_SAV, SPM_A_ReSAV, SPM_A_ESAV
+from train.train_script import PM_Euler, PM_ESAV, PM_MESAV, PM_SAV, PM_ReSAV, PM_RelSAV, SPM_Euler, SPM_ESAV, SPM_SAV, SPM_ReSAV
+from train.train_script import PM_A_Euler, PM_A_SAV, PM_A_ESAV,PM_A_MEAV, PM_A_ReSAV, PM_A_RelSAV, SPM_A_Euler, SPM_A_SAV, SPM_A_ReSAV, SPM_A_ESAV
 import torch.multiprocessing as mp
 
 def parse_args():
@@ -36,7 +36,7 @@ def train_process(method, device):
     #=========Model Initialization=========
     if args.recording:
         method_name = method.__name__
-        init_wandb(args.__dict__, title=f'{method_name}_Test', notes="Test for ESAV scheme of project")
+        init_wandb(args.__dict__, title=f'{method_name}_lr04', notes="Test for ESAV  of project")
     method(model, train_loader, X_train, Y_train, X_test, Y_test, args)
 
 def main():
@@ -45,10 +45,12 @@ def main():
 
     # PM_Euler(model_1, train_loader, X_train, Y_train, X_test, Y_test, args)
     process = []
+    process.append(mp.Process(target=train_process, args=(PM_MESAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_A_MEAV, device)))
     process.append(mp.Process(target=train_process, args=(PM_ESAV, device)))
     process.append(mp.Process(target=train_process, args=(PM_A_ESAV, device)))
-    process.append(mp.Process(target=train_process, args=(SPM_ESAV, device)))
-    process.append(mp.Process(target=train_process, args=(SPM_A_ESAV, device)))
+    # process.append(mp.Process(target=train_process, args=(SPM_ESAV, device)))
+    # process.append(mp.Process(target=train_process, args=(SPM_A_ESAV, device)))
     for p in process:
         p.start()
 

@@ -32,7 +32,20 @@ def ESAV(model: Simple_Perceptron, N_a, N_w, lr, loss, _lambda=0):
         model.W += theta_w_2 * model.r.item()
         model.a.grad.zero_()
         model.W.grad.zero_()
-        
+
+def MESAV(model: Simple_Perceptron, N_a, N_w, lr, loss, E_0=0, _lambda=0):
+    linear_N_a = N_a / (1 + _lambda * lr)
+    linear_N_w = N_w / (1 + _lambda * lr)
+    theta_a_2 = - linear_N_a * E_0 * lr / (torch.exp(loss))
+    theta_w_2 = - linear_N_w * E_0 * lr / (torch.exp(loss))
+    #=========Update SAV R================
+    model.r = model.r / (1 + lr * (torch.sum(N_a * linear_N_a) + torch.sum(N_w * linear_N_w)))
+    with torch.no_grad():
+        #=========Update Params================
+        model.a += theta_a_2 * model.r.item()
+        model.W += theta_w_2 * model.r.item()
+        model.a.grad.zero_()
+        model.W.grad.zero_()
 
 def ReSAV(model: Simple_Perceptron, N_a, N_w, lr, loss, C=1, _lambda=0):
     model.r = torch.sqrt(loss + C)
