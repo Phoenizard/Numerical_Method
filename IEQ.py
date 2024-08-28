@@ -33,7 +33,10 @@ date = datetime.datetime.now().strftime("%m%d%H%M")
 for epoch in range(epochs):
     flag = True
     for X, Y in train_loader:
-        U = (model.forward(X) - Y.reshape(-1, 1))
+        if flag:
+            flag = False
+            U = (model.forward(X) - Y.reshape(-1, 1))
+        # U = (model.forward(X) - Y.reshape(-1, 1))
         theta_0 = torch.cat([model.W.flatten(), model.a.flatten()]).reshape(-1, 1)
         J = torch.zeros(U.shape[0], theta_0.numel(), device=device)
         for i in range(U.shape[0]):
@@ -50,9 +53,12 @@ for epoch in range(epochs):
             # 更新参数
             model.W.data = theta_1[:model.W.numel()].reshape(model.W.shape)
             model.a.data = theta_1[model.W.numel():].reshape(model.a.shape)
+            # U = (I - 2 * lr * J * A^-1 * J^T) * U
+            U = U - 2 * lr * torch.mm(J, torch.mm(A_inv, torch.mm(J_T, U)))
+
             model.W.grad.zero_()
             model.a.grad.zero_()
-
+        print('==================')
     with torch.no_grad():
         train_loss = model.loss(model(X_train), Y_train).mean()
         test_loss = model.loss(model(X_test), Y_test).mean()
