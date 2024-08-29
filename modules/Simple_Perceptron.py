@@ -1,5 +1,18 @@
 from torch import nn
 import torch
+import numpy as np
+import random
+
+# 设置随机数种子
+seed = 42
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+np.random.seed(seed)
+random.seed(seed)
+
+# 确保在使用CuDNN时，结果是可复现的
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 class Simple_Perceptron(nn.Module):
     def __init__(self, input, hidden_layer, output):
