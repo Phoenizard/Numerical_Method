@@ -1,9 +1,10 @@
 from optimizers.adaptation import adaptation, anti_adaptation
 from optimizers.space_discretization import PM, SPM
-from optimizers.time_discretization import Euler, SAV, ReSAV, RelSAV, ESAV, MESAV
+from optimizers.time_discretization import Euler, SAV, ReSAV, RelSAV, ESAV, MESAV, RelESAV
 from utils import validate
 import torch
 import tqdm
+import warnings
 
 def PM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
@@ -58,7 +59,6 @@ def PM_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
             ReSAV(model, N_a, N_w, lr, loss=loss, C=args.C, _lambda=args._lambda)
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True)
 
-
 def PM_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):
         ellipsis_set = []
@@ -72,6 +72,21 @@ def PM_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
             ellipsis_0 = RelSAV(model, N_a, N_w, lr, loss=loss, X=x, Y=y, ratio_n=args.ratio_n, C=args.C, _lambda=args._lambda, )
             ellipsis_set.append(ellipsis_0)
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True, ellipsis=sum(ellipsis_set)/len(ellipsis_set))
+
+def PM_RelESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
+    for epoch in tqdm.tqdm(range(args.epochs)):
+        ellipsis_set = []
+        flag = True
+        for X, Y in train_loader:
+            if flag:
+                loss = PM(model, X, Y)
+                model.r = torch.exp(loss)
+                flag = False
+            N_a, N_w, lr = anti_adaptation(model, args.lr)
+            ellipsis_0 = RelESAV(model, N_a, N_w, lr, loss=loss, X=X, Y=Y, ratio_n=args.ratio_n, _lambda=args._lambda)
+            ellipsis_set.append(ellipsis_0)
+        validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True, ellipsis=sum(ellipsis_set)/len(ellipsis_set))
+  
 
 def PM_IEQ(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in tqdm(range(args.epochs), desc="Training Epochs"):
