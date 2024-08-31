@@ -32,41 +32,32 @@ config = {
 import datetime
 
 date = datetime.datetime.now().strftime("%m%d%H%M")
-wandb.init(project='Numerical Method', name=f"PM_IEQ_ManulGrad_{date}", config=config, notes="IEQ手动参数加速+新差分")
+wandb.init(project='Numerical Method', name=f"PM_IEQ_ManulGrad_{date}", config=config, notes="IEQ手动参数加速")
 
 for epoch in tqdm(range(epochs)):
     flag = True
     for X, Y in train_loader:
         if flag:
-            U = (model(X) - Y.reshape(-1, 1))
+            X = X.to(device)
+            Y = Y.to(device)
             flag = False
-        # 增广模型中的参数
+            U = (model(X) - Y.reshape(-1, 1))
         theta_0 = torch.cat([model.W.flatten(), model.a.flatten()]).reshape(-1, 1)
         #=====Jacobian 矩阵=========================
         J = G_modified(X, model)
         #===========================================
         # 转置矩阵 J_T
         with torch.no_grad():
-        # 计算 A = I + 2Δt * J_n * J_n^T，确保 A 在 CUDA 上
-            A = torch.eye(J.shape[0], device=device) + 2 * lr * torch.mm(J, J.T)
-            
-            # # 使用 Cholesky 分解计算 A 的逆矩阵，确保操作在 CUDA 上
-            # L = torch.linalg.cholesky(A)
-            # A_inv = torch.cholesky_inverse(L)
-            
-            A_inv = torch.inverse(A).to(device)
+            J_T = J.T.to(device)
+            A = torch.eye(theta_0.numel(), device=device) + 2 * lr * torch.mm(J_T, J)
+            L = torch.linalg.cholesky(A)
+            A_inv = torch.cholesky_inverse(L)
 
-            # 更新 U^{n+1}
-            U_1 = torch.mm(A_inv, U)
-            
-            # 更新 theta^{n+1}
-            theta_1 = theta_0 - 2 * lr * torch.mm(J.T, U_1)
-            
-            # 更新模型参数，确保更新后的参数在 GPU 上
+            theta_1 = theta_0 - 2 * lr * torch.mm(torch.mm(A_inv, J_T), U)
             model.W.data = theta_1[:model.W.numel()].reshape(model.W.shape)
             model.a.data = theta_1[model.W.numel():].reshape(model.a.shape)
             
-            # 更新 U_n 和 theta_n
-            U = U_1
-            wandb.log({'J_norm': torch.norm(J).item()})
+            U = U - 2 * lr * torch.mm(J, torch.mm(A_inv, torch.mm(J_T, U)))
+            # 更新参数
+
     validate(model, X_train, Y_train, X_test, Y_test, epoch, is_recoard=True)
