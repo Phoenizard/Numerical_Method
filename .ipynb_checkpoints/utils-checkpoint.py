@@ -1,7 +1,6 @@
 import torch, wandb, datetime
 from modules.Simple_Perceptron import Simple_Perceptron
 from data.grip_data import load_data
-import time
 
 def Transpose_Jacobian_Order(m, D, device=None):
     P = torch.zeros((m*(D+1), m*(D+1)), device=device)
@@ -15,7 +14,7 @@ def Transpose_Jacobian_Order(m, D, device=None):
 
 def G_modified(X, model):
     # 开始计时
-    start = time.time()
+    # start = time.time()
     
     input_dim, m = model.W.shape  # m: 隐藏层神经元数量, input_dim: 输入维度
     batch_size = X.shape[0]       # batch_size: 批处理大小
@@ -28,49 +27,20 @@ def G_modified(X, model):
     relu_output = torch.relu(relu_input)  # (batch_size, m)
     
     # 对 w_i 的部分并行计算 Jacobian
-    W_grad = torch.zeros(batch_size, input_dim, m)
     for j in range(m):
-        mask = (relu_input[:, j] > 0).float()  # 只选择 ReLU 激活大于0的元素
-        W_grad[:, :, j] = model.a[j] * X * mask.view(-1, 1) / m
-    J[:, :m*input_dim] = W_grad.reshape(W_grad.shape[0], -1)
+        mask = relu_input[:, j] > 0  # 只选择 ReLU 激活大于0的元素
+        J[:, j*input_dim:(j+1)*input_dim] = (model.a[j] * X * mask.view(-1, 1)) / m
+    # TODO: model.a[j] * X * mask.view(-1, 1) or model.a[j] * X
     # 对 a_i 的部分并行计算 Jacobian
     J[:, m*input_dim:] = relu_output / m
-    end = time.time()
-    print("计算Jacobian矩阵耗时：", end - start)
-    return J
 
-def G_modified_CUDA(X, model):
-    # 开始计时
-    # start = time.time()
-    # 确保所有张量在 CUDA 设备上
-    device = X.device
-    
-    input_dim, m = model.W.shape  # m: 隐藏层神经元数量, input_dim: 输入维度
-    batch_size = X.shape[0]       # batch_size: 批处理大小
-    
-        # 初始化 Jacobian 矩阵 J，大小为 (batch_size, m * (input_dim + 1))
-    J = torch.zeros(batch_size, m * (input_dim + 1), device=device)
-    
-    # 计算所有样本的 <w_i, x> 和 ReLU 激活
-    relu_input = X @ model.W  # (batch_size, m)
-    relu_output = torch.relu(relu_input)  # (batch_size, m)
-    
-    # 对 w_i 的部分并行计算 Jacobian
-    mask = (relu_input > 0).float()  # (batch_size, m)
-    
-    # 使用广播机制计算 W_grad
-    W_grad = (X.unsqueeze(2) * mask.unsqueeze(1)) / m  # (batch_size, input_dim, m)
-    W_grad = W_grad * model.a.view(1, 1, m)  # (batch_size, input_dim, m)
-    
-    # 将 W_grad 转换为二维矩阵并赋值给 J
-    J[:, :m*input_dim] = W_grad.reshape(batch_size, -1)
-    
-    # 对 a_i 的部分并行计算 Jacobian
-    J[:, m*input_dim:] = relu_output / m
-    
+    P = Transpose_Jacobian_Order(m, input_dim, device=X.device)
+    J_transpose = J @ P
+    # # 结束计时
     # end = time.time()
-    # print("CUDA计算Jacobian矩阵耗时：", end - start)
-    return J
+    # print("优化后Time: ", end - start)
+    
+    return J_transpose
 
 def validate(model, X_train, Y_train, X_test, Y_test, epoch, is_recoard=False, is_SAV=False, ellipsis=None, is_adaptive=False, adp_lr=None):
     with torch.no_grad():
