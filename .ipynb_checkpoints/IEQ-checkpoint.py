@@ -12,6 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 lr = 1
 m = 100
 D = 40
+l = 64
 model = Simple_Perceptron.Simple_Perceptron(41, m, 1).to(device)
 train_loader, X_train, Y_train, X_test, Y_test, D = grip_data.load_data(device=device)
 epochs = 10000
@@ -32,32 +33,38 @@ config = {
 import datetime
 
 date = datetime.datetime.now().strftime("%m%d%H%M")
-wandb.init(project='Numerical Method', name=f"PM_IEQ_ManulGrad_{date}", config=config, notes="IEQ手动参数加速")
+wandb.init(project='Numerical Method', name=f"PM_IEQ_ManulGrad_{date}", config=config, notes="IEQ手动参数加速+新差分, lr/batch")
 
 for epoch in tqdm(range(epochs)):
     flag = True
     for X, Y in train_loader:
         if flag:
-            X = X.to(device)
-            Y = Y.to(device)
+            U = (model.forward(X) - Y.reshape(-1, 1))
             flag = False
-            U = (model(X) - Y.reshape(-1, 1))
-        theta_0 = torch.cat([model.W.flatten(), model.a.flatten()]).reshape(-1, 1)
-        #=====Jacobian 矩阵=========================
         J = G_modified(X, model)
-        #===========================================
-        # 转置矩阵 J_T
         with torch.no_grad():
-            J_T = J.T.to(device)
-            A = torch.eye(theta_0.numel(), device=device) + 2 * lr * torch.mm(J_T, J)
+            theta_0 = torch.cat([model.W.flatten(), model.a.flatten()]).reshape(-1, 1)
+            J_T = J.T
+            # 计算量A，A=I + 2lr(J^T)J
+            A = torch.eye(theta_0.numel(), device=device) + 2 * (lr / l) * torch.mm(J_T, J)
             L = torch.linalg.cholesky(A)
             A_inv = torch.cholesky_inverse(L)
-
-            theta_1 = theta_0 - 2 * lr * torch.mm(torch.mm(A_inv, J_T), U)
-            model.W.data = theta_1[:model.W.numel()].reshape(model.W.shape)
-            model.a.data = theta_1[model.W.numel():].reshape(model.a.shape)
-            
-            U = U - 2 * lr * torch.mm(J, torch.mm(A_inv, torch.mm(J_T, U)))
-            # 更新参数
-
-    validate(model, X_train, Y_train, X_test, Y_test, epoch, is_recoard=True)
+            theta_1 = theta_0 - 2 * (lr / l) * torch.mm(torch.mm(A_inv, J_T), U)
+            model.W.data = theta_1[:(D + 1) * m].reshape(D + 1, m)
+            model.a.data = theta_1[(D + 1) * m:].reshape(m, 1)
+            U = (torch.eye(U.numel(), device=device) - 2 * (lr / l) * torch.mm(J, torch.mm(A_inv, J_T))) @ U 
+            wandb.log({'U_norm': torch.norm(U).item(),
+                      'J_norm': torch.norm(J).item()})
+    with torch.no_grad():
+        train_loss = model.loss(model(X_train), Y_train).mean()
+        test_loss = model.loss(model(X_test), Y_test).mean()
+        train_losses.append(train_loss)
+        test_losses.append(test_loss)
+        norm = model.get_norm()
+        wandb.log({'epoch': epoch + 1,
+                   'train_loss': train_loss, 
+                   'test_loss': test_loss,
+                   'norm_W': norm[0],
+                   'norm_a': norm[1],
+                   'accuracy': 1 - test_loss})
+        # print(f'epoch {epoch + 1}, loss {train_loss:.8f}, test loss {test_loss:.8f}')

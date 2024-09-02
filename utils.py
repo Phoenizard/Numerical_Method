@@ -20,7 +20,7 @@ def G_modified(X, model):
     for j in range(m):
         mask = relu_output[:, j] > 0  # 只选择 ReLU 激活大于0的元素
         J[:, j*input_dim:(j+1)*input_dim] = (model.a[j] * X * mask.view(-1, 1)) / m
-    
+    # TODO: model.a[j] * X * mask.view(-1, 1) or model.a[j] * X
     # 对 a_i 的部分并行计算 Jacobian
     J[:, m*input_dim:] = relu_output / m
 
