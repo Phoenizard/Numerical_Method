@@ -7,6 +7,7 @@ import time
 from utils import G_modified, validate
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"device: {device}")
 # device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
 
 lr = 1
@@ -33,7 +34,7 @@ config = {
 import datetime
 
 date = datetime.datetime.now().strftime("%m%d%H%M")
-wandb.init(project='Numerical Method', name=f"PM_IEQ_ManulGrad_{date}", config=config, notes="IEQ手动参数加速+新差分, lr/batch")
+wandb.init(project='Numerical Method', name=f"PM_IEQ_ManulGrad_{date}", config=config, notes="IEQ 转化Jacobian")
 
 for epoch in tqdm(range(epochs)):
     flag = True
@@ -53,8 +54,8 @@ for epoch in tqdm(range(epochs)):
             model.W.data = theta_1[:(D + 1) * m].reshape(D + 1, m)
             model.a.data = theta_1[(D + 1) * m:].reshape(m, 1)
             U = (torch.eye(U.numel(), device=device) - 2 * (lr / l) * torch.mm(J, torch.mm(A_inv, J_T))) @ U 
-            wandb.log({'U_norm': torch.norm(U).item(),
-                      'J_norm': torch.norm(J).item()})
+            # wandb.log({'U_norm': torch.norm(U).item(),
+            #           'J_norm': torch.norm(J).item()})
     with torch.no_grad():
         train_loss = model.loss(model(X_train), Y_train).mean()
         test_loss = model.loss(model(X_test), Y_test).mean()
@@ -65,6 +66,5 @@ for epoch in tqdm(range(epochs)):
                    'train_loss': train_loss, 
                    'test_loss': test_loss,
                    'norm_W': norm[0],
-                   'norm_a': norm[1],
-                   'accuracy': 1 - test_loss})
+                   'norm_a': norm[1]})
         # print(f'epoch {epoch + 1}, loss {train_loss:.8f}, test loss {test_loss:.8f}')

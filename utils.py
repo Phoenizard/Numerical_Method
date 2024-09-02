@@ -2,6 +2,16 @@ import torch, wandb, datetime
 from modules.Simple_Perceptron import Simple_Perceptron
 from data.grip_data import load_data
 
+def Transpose_Jacobian_Order(m, D, device=None):
+    P = torch.zeros((m*(D+1), m*(D+1)), device=device)
+    for i in range(D):
+        for j in range(m):
+            P[j*D + i, i*m + j] = 1
+    # 令最后m行m列为单位矩阵
+    for i in range(m*D, m*(D+1)):
+        P[i, i] = 1
+    return P
+
 def G_modified(X, model):
     # 开始计时
     # start = time.time()
@@ -18,17 +28,19 @@ def G_modified(X, model):
     
     # 对 w_i 的部分并行计算 Jacobian
     for j in range(m):
-        mask = relu_output[:, j] > 0  # 只选择 ReLU 激活大于0的元素
+        mask = relu_input[:, j] > 0  # 只选择 ReLU 激活大于0的元素
         J[:, j*input_dim:(j+1)*input_dim] = (model.a[j] * X * mask.view(-1, 1)) / m
     # TODO: model.a[j] * X * mask.view(-1, 1) or model.a[j] * X
     # 对 a_i 的部分并行计算 Jacobian
     J[:, m*input_dim:] = relu_output / m
 
+    P = Transpose_Jacobian_Order(m, input_dim, device=X.device)
+    J_transpose = J @ P
     # # 结束计时
     # end = time.time()
     # print("优化后Time: ", end - start)
     
-    return J
+    return J_transpose
 
 def validate(model, X_train, Y_train, X_test, Y_test, epoch, is_recoard=False, is_SAV=False, ellipsis=None, is_adaptive=False, adp_lr=None):
     with torch.no_grad():
