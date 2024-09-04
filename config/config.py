@@ -25,5 +25,5 @@ config = {
     "h": 0.0001,
 
     # Add more parameters here if needed
-    "recording": False
+    "recording": True
 }

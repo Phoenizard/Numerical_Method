@@ -1,13 +1,14 @@
 from modules import Simple_Perceptron
 import torch
-from utils import N_grad
+from utils import N_grad, N_grad_optimized
 
 def anti_adaptation(model: Simple_Perceptron, lr, X, Y):
     # N_a = model.a.grad.clone()
     # N_w = model.W.grad.clone()
 
     # 手动计算梯度
-    N_w, N_a = N_grad(model, X, Y)
+    # N_w, N_a = N_grad(model, X, Y)
+    N_w, N_a = N_grad_optimized(model, X, Y)
     adp_lr = lr
     return N_a, N_w, adp_lr
 
