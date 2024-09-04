@@ -4,6 +4,7 @@ from data import grip_data
 import wandb
 from tqdm import tqdm
 import time
+import warnings
 from utils import G_modified, validate, G_modified_CUDA
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,7 +43,6 @@ for epoch in tqdm(range(epochs)):
         if flag:
             U = (model.forward(X) - Y.reshape(-1, 1))
             flag = False
-        # J = G_modified(X, model)
         J = G_modified_CUDA(X, model)
         with torch.no_grad():
             theta_0 = torch.cat([model.W.flatten(), model.a.flatten()]).reshape(-1, 1)
@@ -51,12 +51,32 @@ for epoch in tqdm(range(epochs)):
             A = torch.eye(theta_0.numel(), device=device) + 2 * lr * torch.mm(J_T, J)
             L = torch.linalg.cholesky(A)
             A_inv = torch.cholesky_inverse(L)
-            theta_1 = theta_0 - 2 * lr * torch.mm(torch.mm(A_inv, J_T), U)
+            # A_inv = torch.inverse(A)
+            U_wave = (torch.eye(U.numel(), device=device) - 2 * lr * torch.mm(J, torch.mm(A_inv, J_T))) @ U 
+            theta_1 = theta_0 - 2 * lr * torch.mm(torch.mm(A_inv, J_T), U_wave)
             model.W.data = theta_1[:(D + 1) * m].reshape(D + 1, m)
             model.a.data = theta_1[(D + 1) * m:].reshape(m, 1)
-            U = (torch.eye(U.numel(), device=device) - 2 * lr * torch.mm(J, torch.mm(A_inv, J_T))) @ U 
             # wandb.log({'U_norm': torch.norm(U).item(),
             #           'J_norm': torch.norm(J).item()})
+            #===============================Relaxation===============================
+            U_hat = (model.forward(X) - Y.reshape(-1, 1))
+            a = torch.norm(U_wave - U_hat) ** 2
+            b = 2 * torch.dot(U_hat.flatten(), (U_wave - U_hat).flatten())
+            c = torch.norm(U_hat) ** 2 - torch.norm(U_wave) ** 2 - 0.99 * torch.norm(theta_1 - theta_0) ** 2 / lr
+            if a == 0:
+                warnings.warn("a == 0")
+                ellipsis_0 = 0
+            elif (b ** 2 - 4 * a * c) < 0:
+                warnings.warn("b^2 - 4ac < 0")
+                ellipsis_0 = 0
+            else:
+                ellipsis_0 = max((-b - torch.sqrt(b ** 2 - 4 * a * c)) / (2 * a), 0)
+            if ellipsis_0 > 1:
+                warnings.warn("ellipsis_0 > 1")
+                ellipsis_0 = 1
+            U = ellipsis_0 * U_wave + (1 - ellipsis_0) * U_hat
+            #=======================================================================
+            wandb.log({'ellipsis': ellipsis_0})
     with torch.no_grad():
         train_loss = model.loss(model(X_train), Y_train).mean()
         test_loss = model.loss(model(X_test), Y_test).mean()
