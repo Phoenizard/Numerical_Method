@@ -47,12 +47,12 @@ def main():
 
     # PM_Euler(model_1, train_loader, X_train, Y_train, X_test, Y_test, args)
     process = []
-    process.append(mp.Process(target=train_process, args=(PM_A_ESAV, device, 0.1)))
-    process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.1)))
-    process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.01)))
-    process.append(mp.Process(target=train_process, args=(PM_A_ESAV, device, 0.01)))
-    process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.001)))
-    process.append(mp.Process(target=train_process, args=(PM_A_ESAV, device, 0.001)))
+    process.append(mp.Process(target=train_process, args=(PM_SAV, device)))
+    # process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.1)))
+    # process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.01)))
+    # process.append(mp.Process(target=train_process, args=(PM_A_ESAV, device, 0.01)))
+    # process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.001)))
+    # process.append(mp.Process(target=train_process, args=(PM_A_ESAV, device, 0.001)))
     # process.append(mp.Process(target=train_process, args=(SPM_ESAV, device)))
     # process.append(mp.Process(target=train_process, args=(SPM_A_ESAV, device)))
     for p in process:

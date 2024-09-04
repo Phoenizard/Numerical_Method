@@ -8,7 +8,7 @@ config = {
     "m": 100,
     "batch_size": 64,
     "epochs": 10000,
-    "lr": 0.4,
+    "lr": 1,
 
     # SAV related parameters
     "C": 1,
@@ -25,5 +25,5 @@ config = {
     "h": 0.0001,
 
     # Add more parameters here if needed
-    "recording": True
+    "recording": False
 }

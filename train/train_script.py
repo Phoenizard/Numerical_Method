@@ -15,14 +15,14 @@ def PM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, False)
 
 def PM_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         flag = True
         for x, y in train_loader:
             loss = PM(model, x, y)
             if flag:
                 model.r = torch.sqrt(loss + args.C)
                 flag = False
-            N_a, N_w, lr = anti_adaptation(model, args.lr)
+            N_a, N_w, lr = anti_adaptation(model, args.lr, x, y)
             SAV(model, N_a, N_w, lr, loss=loss, C=args.C, _lambda=args._lambda)
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True)
 

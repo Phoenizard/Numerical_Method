@@ -114,3 +114,38 @@ def Adam():
 def init_wandb(cfg: dict, title: str, notes=""):
     date = datetime.datetime.now().strftime("%m-%d_%H-%M-%S")
     wandb.init(project="Numerical Method", config=cfg, name=f"{title}_{date}", notes=notes)
+
+
+def N_grad(model: Simple_Perceptron, X, Y) -> tuple:
+    '''
+    手动计算模型的梯度, 返回W,a的梯度
+    model: Simple_Perceptron 模型
+    X: 输入数据
+    Y: 输出数据
+    '''
+    # start = time.time()
+    # 获取模型的参数 a 和 W
+    with torch.no_grad():
+        a, W, hidden_dim = model.a, model.W, model.W.shape[1]
+        y_pred = model(X)
+        # 计算损失
+        grad_a = torch.zeros_like(a)  # 初始化 grad_a
+        z1 = torch.nn.ReLU()(torch.mm(X, W))  # 计算 z1 (激活后的隐藏层输出)
+        
+        # 计算每个隐藏神经元的梯度
+        for j in range(hidden_dim):
+            grad_a[j] = (2 * (y_pred - Y.reshape(y_pred.shape)) * z1[:, j]).mean() / hidden_dim
+        
+        # Step 2: 对 W 的梯度
+        grad_W = torch.zeros_like(W)  # 初始化 grad_W
+        
+        # 计算 ReLU 的梯度
+        for j in range(hidden_dim):
+            for i in range(X.shape[0]):  # 对每个样本进行求和
+                if z1[i, j] > 0:  # ReLU 导数 (只有正值才有梯度)
+                    grad_W[:, j] += (2 * (y_pred[i] - Y[i]) * a[j] / hidden_dim) * X[i]
+        
+        grad_W /= X.shape[0]  # 对样本数 N 进行归一化
+    # end = time.time()
+    # print("计算梯度耗时：", end - start)
+    return grad_W, grad_a
