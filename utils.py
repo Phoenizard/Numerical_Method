@@ -164,14 +164,16 @@ def N_grad_optimized(model, X, Y):
 
         # 计算 grad_a 的梯度
         error = 2 * (y_pred - Y.reshape(y_pred.shape))  # 计算误差
-        grad_a = (error.unsqueeze(1) * z1).mean(dim=0) / hidden_dim  # 并行计算 grad_a
+        grad_a = (error * z1).mean(dim=0) / hidden_dim  # 并行计算 grad_a
 
         # 计算 grad_W 的梯度
         relu_grad = (z1 > 0).float()  # ReLU 的梯度（非零部分为 1，其他为 0）
-        weighted_error = (error.unsqueeze(1) * a) * relu_grad  # 误差与激活梯度和 a 的乘积
+        # print(relu_grad.shape, error.shape, a.shape, X.shape)
+        # torch.Size([64, 100]) torch.Size([64, 1]) torch.Size([100, 1]) torch.Size([64, 41])
+        weighted_error = (error @ a.t()) * relu_grad  # 误差与激活梯度和 a 的乘积
         grad_W = torch.mm(X.t(), weighted_error) / (X.shape[0] * hidden_dim)  # 并行计算 grad_W
         
     # end = time.time()
     # print("计算梯度耗时：", end - start)
     
-    return grad_W, grad_a
+    return grad_W, grad_a.reshape(-1, 1)

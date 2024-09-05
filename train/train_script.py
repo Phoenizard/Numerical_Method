@@ -3,11 +3,11 @@ from optimizers.space_discretization import PM, SPM
 from optimizers.time_discretization import Euler, SAV, ReSAV, RelSAV, ESAV, MESAV, RelESAV
 from utils import validate
 import torch
-import tqdm
+from tqdm import tqdm
 import warnings
 
 def PM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         for x, y in train_loader:
             loss = PM(model, x, y)
             N_a, N_w, lr = anti_adaptation(model, args.lr)
@@ -22,7 +22,7 @@ def PM_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
             if flag:
                 model.r = torch.sqrt(loss + args.C)
                 flag = False
-            N_a, N_w, lr = anti_adaptation(model, args.lr, x, y)
+            N_a, N_w, lr = anti_adaptation(model, args.lr)
             SAV(model, N_a, N_w, lr, loss=loss, C=args.C, _lambda=args._lambda)
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True)
 

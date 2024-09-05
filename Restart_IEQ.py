@@ -23,26 +23,22 @@ test_losses = []
 
 config = {
     'learning_rate': lr,
-    'batch_size': l,
+    'batch_size': 64,
     'epochs': epochs,
     'hidden_layer': m,
     'input': D + 1,
     'output': 1,
-    'optimizer': 'IEQ'
+    'optimizer': 'Restart-IEQ'
 }
 
 import datetime
 
 date = datetime.datetime.now().strftime("%m%d%H%M")
-wandb.init(project='Numerical Method', name=f"PM_IEQ_U2P_{date}", config=config, notes="IEQ 先更新U版本")
+wandb.init(project='Numerical Method', name=f"PM_Restart_IEQ_J_Trans_{date}", config=config, notes="IEQ 转化Jacobian, CUDA并行计算")
 
 for epoch in tqdm(range(epochs)):
-    flag = True
     for X, Y in train_loader:
-        if flag:
-            U = (model.forward(X) - Y.reshape(-1, 1))
-            flag = False
-        # J = G_modified(X, model)
+        U = (model.forward(X) - Y.reshape(-1, 1))
         J = G_modified_CUDA(X, model)
         with torch.no_grad():
             theta_0 = torch.cat([model.W.flatten(), model.a.flatten()]).reshape(-1, 1)

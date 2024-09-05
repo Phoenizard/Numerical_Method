@@ -38,7 +38,7 @@ def train_process(method, device, lr=None):
     #=========Model Initialization=========
     if args.recording:
         method_name = method.__name__
-        init_wandb(args.__dict__, title=f'{method_name}', notes="Test for SAV 手动更新梯度")
+        init_wandb(args.__dict__, title=f'{method_name}', notes="BaseLine Euler with lr=0.01")
     method(model, train_loader, X_train, Y_train, X_test, Y_test, args)
 
 def main():
@@ -47,8 +47,10 @@ def main():
 
     # PM_Euler(model_1, train_loader, X_train, Y_train, X_test, Y_test, args)
     process = []
-    process.append(mp.Process(target=train_process, args=(PM_SAV, device)))
-    # process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.1)))
+    process.append(mp.Process(target=train_process, args=(PM_Euler, device, 0.01)))
+    # process.append(mp.Process(target=train_process, args=(PM_SAV, device)))
+    # process.append(mp.Process(target=train_process, args=(PM_ReSAV, device)))
+    # process.append(mp.Process(target=train_process, args=(PM_RelSAV, device)))
     # process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.01)))
     # process.append(mp.Process(target=train_process, args=(PM_A_ESAV, device, 0.01)))
     # process.append(mp.Process(target=train_process, args=(PM_ESAV, device, 0.001)))

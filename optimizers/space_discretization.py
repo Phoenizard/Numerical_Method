@@ -1,10 +1,13 @@
 import torch
 from modules import Simple_Perceptron
-
+from utils import N_grad_optimized as N_PM_Grad
 
 def PM(model: Simple_Perceptron, x, y):
     loss = model.loss(model(x), y).mean()
-    loss.backward()
+    # loss.backward()
+    N_w, N_a = N_PM_Grad(model, x, y)
+    model.a.grad = N_a
+    model.W.grad = N_w
     return loss
 
 def SPM(model: Simple_Perceptron, x, y, J=10, h=0.0001):
