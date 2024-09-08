@@ -22,5 +22,5 @@ def load_data(l=64, name='example_2_40D', device='cuda'):
     # 使用 DataLoader 进行批处理
     l = 64
     train_dataset = TensorDataset(X_train, Y_train)
-    train_loader = DataLoader(train_dataset, batch_size=l, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=l, shuffle=False)
     return train_loader, X_train, Y_train, X_test, Y_test, D

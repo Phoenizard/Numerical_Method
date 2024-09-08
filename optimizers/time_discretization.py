@@ -11,12 +11,17 @@ def Euler(model: Simple_Perceptron, N_a, N_w, lr):
         model.a.grad.zero_()
 
 def SAV(model: Simple_Perceptron, N_a, N_w, lr, loss, C=1, _lambda=0):
-    theta_a_2 = -lr * N_a / (torch.sqrt(loss + C) * (1 + lr * _lambda))
-    theta_w_2 = -lr * N_w / (torch.sqrt(loss + C) * (1 + lr * _lambda))
-    model.r = model.r / (1 + lr * (torch.sum(N_a * (N_a / (1 + lr * _lambda))) + torch.sum(N_w * (N_w) / (1 + lr * _lambda))) / (2 * (loss + C)))
+    D, m = (model.W.shape[0] - 1), model.W.shape[1]
+    theta = torch.cat([model.W.flatten(), model.a.flatten()]).reshape(-1, 1)
+    N_theta = torch.cat([N_w.flatten(), N_a.flatten()]).reshape(-1, 1)
+    theta_1_2 = -lr * N_theta / (torch.sqrt(loss + C) * (1 + lr * _lambda))
+    # theta_a_2 = -lr * N_a / (torch.sqrt(loss + C) * (1 + lr * _lambda))
+    # theta_w_2 = -lr * N_w / (torch.sqrt(loss + C) * (1 + lr * _lambda))
+    model.r = model.r / (1 + lr * torch.sum(N_theta * (N_theta / (1 + lr * _lambda))) / (2 * (loss + C)))
     with torch.no_grad():
-        model.a += model.r.item() * theta_a_2
-        model.W += model.r.item() * theta_w_2
+        theta += model.r.item() * theta_1_2
+        model.W.data = theta[:(D + 1) * m].reshape(D + 1, m)
+        model.a.data = theta[(D + 1) * m:].reshape(m, 1)
         model.a.grad.zero_()
         model.W.grad.zero_()
 
@@ -60,7 +65,7 @@ def ReSAV(model: Simple_Perceptron, N_a, N_w, lr, loss, C=1, _lambda=0):
         model.a.grad.zero_()
         model.W.grad.zero_()
 
-def RelSAV(model: Simple_Perceptron, N_a, N_w,lr, loss, X, Y, ratio_n = 0.99, C=1, _lambda=4):
+def RelSAV(model: Simple_Perceptron, N_a, N_w, lr, loss, X, Y, ratio_n = 0.99, C=1, _lambda=4):
     #===============Update the parameters in SAV================
     theta_a_1 = model.a.clone()
     theta_w_1 = model.W.clone()
