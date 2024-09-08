@@ -1,7 +1,8 @@
 from optimizers.adaptation import adaptation, anti_adaptation
 from optimizers.space_discretization import PM, SPM
 from optimizers.time_discretization import Euler, SAV, ReSAV, RelSAV, ESAV, MESAV, RelESAV
-from utils import validate
+from optimizers.time_discretization import IEQ, RelIEQ
+from utils import validate, G_modified_CUDA
 import torch
 from tqdm import tqdm
 import warnings
@@ -94,7 +95,32 @@ def PM_IEQ(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         for x, y in train_loader:
             if flag:
                 flag = False
-            
+                model.U = (model.forward(x) - y.reshape(-1, 1))
+            J = G_modified_CUDA(x, model)
+            IEQ(model, J, args.lr) 
+        validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, False)       
+
+def PM_ReIEQ(model, train_loader, X_train, Y_train, X_test, Y_test, args):
+    for epoch in tqdm(range(args.epochs), desc="Training Epochs"):
+        for x, y in train_loader:
+            model.U = (model.forward(x) - y.reshape(-1, 1))
+            J = G_modified_CUDA(x, model)
+            IEQ(model, J, args.lr)
+        validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, False)
+
+def PM_RelIEQ(model, train_loader, X_train, Y_train, X_test, Y_test, args):
+    for epoch in tqdm(range(args.epochs), desc="Training Epochs"):
+        ellipsis_set = []
+        flag = True
+        for x, y in train_loader:
+            if flag:
+                flag = False
+                model.U = (model.forward(x) - y.reshape(-1, 1))
+            J = G_modified_CUDA(x, model)
+            ellipsis_0 = RelIEQ(model, J, X=x, Y=y, lr=args.lr, ratio_n=args.ratio_n)
+            ellipsis_set.append(ellipsis_0)
+        validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, False, ellipsis=sum(ellipsis_set)/len(ellipsis_set))
+
 
 def SPM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
     for epoch in range(args.epochs):

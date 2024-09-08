@@ -26,6 +26,8 @@ class Simple_Perceptron(nn.Module):
         nn.init.kaiming_normal_(self.a, mode='fan_in', nonlinearity='relu')
         #========SAV Params=======
         self.r = 0
+        #========IEQ Params=======
+        self.U = None
         #========Adaptation Params=======
         self.m_a, self.m_w, self.v = 0, 0, 0
 
