@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 D = 40
-M = 10000
+M = 100000
 
 p = np.random.randn(D)
 q = np.random.randn(D)
@@ -21,10 +21,10 @@ for x in X:
 # Y数据进行 z标准化
 Y = (Y - Y.mean()) / Y.std()
 
-X_train = torch.tensor(X_bias[:8000], dtype=torch.float32)
-Y_train = torch.tensor(Y[:8000], dtype=torch.float32)
-X_test = torch.tensor(X_bias[8000:], dtype=torch.float32)
-Y_test = torch.tensor(Y[8000:], dtype=torch.float32)
+X_train = torch.tensor(X_bias[:int(0.8 * M)], dtype=torch.float32)
+Y_train = torch.tensor(Y[:int(0.8 * M)], dtype=torch.float32)
+X_test = torch.tensor(X_bias[int(0.8 * M):], dtype=torch.float32)
+Y_test = torch.tensor(Y[int(0.8 * M):], dtype=torch.float32)
 
 print('X_train:', X_train.shape)
 print('Y_train:', Y_train.shape)

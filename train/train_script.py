@@ -28,7 +28,7 @@ def PM_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True)
 
 def PM_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         flag = True
         for x, y in train_loader:
             loss = PM(model, x, y)
@@ -39,8 +39,17 @@ def PM_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
             ESAV(model, N_a, N_w, lr, loss=loss, _lambda=args._lambda)
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, is_SAV=True)
 
+def PM_ReESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
+    for epoch in tqdm(range(args.epochs)):
+        for x, y in train_loader:
+            loss = PM(model, x, y)
+            model.r = torch.exp(loss)
+            N_a, N_w, lr = anti_adaptation(model, args.lr)
+            ESAV(model, N_a, N_w, lr, loss=loss, _lambda=args._lambda)
+        validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, is_SAV=True)
+
 def PM_MESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         flag = True
         for x, y in train_loader:
             loss = PM(model, x, y)
@@ -53,7 +62,7 @@ def PM_MESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, False)
 
 def PM_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         for x, y in train_loader:
             loss = PM(model, x, y)
             N_a, N_w, lr = anti_adaptation(model, args.lr)
@@ -61,7 +70,7 @@ def PM_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True)
 
 def PM_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         ellipsis_set = []
         flag = True
         for x, y in train_loader:
@@ -75,7 +84,7 @@ def PM_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True, ellipsis=sum(ellipsis_set)/len(ellipsis_set))
 
 def PM_RelESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in tqdm.tqdm(range(args.epochs)):
+    for epoch in tqdm(range(args.epochs)):
         ellipsis_set = []
         flag = True
         for X, Y in train_loader:
@@ -123,7 +132,7 @@ def PM_RelIEQ(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 
 def SPM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         for x, y in train_loader:
             loss = SPM(model, x, y, J=args.J, h=args.h)
             N_a, N_w, lr = anti_adaptation(model, args.lr)
@@ -132,7 +141,7 @@ def SPM_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 
 def SPM_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         flag = True
         for x, y in train_loader:
             loss = SPM(model, x, y, J=args.J, h=args.h)
@@ -144,7 +153,7 @@ def SPM_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, True)
 
 def SPM_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         flag = True
         for x, y in train_loader:
             loss = SPM(model, x, y, J=args.J, h=args.h)
@@ -156,7 +165,7 @@ def SPM_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         validate(model, X_train, Y_train, X_test, Y_test, epoch, args.recording, False)
         
 def SPM_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         for x, y in train_loader:
             loss = SPM(model, x, y, J=args.J, h=args.h)
             N_a, N_w, lr = anti_adaptation(model, args.lr)
@@ -165,7 +174,7 @@ def SPM_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 
 def SPM_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         ellipsis_set = []
         flag = True
         for x, y in train_loader:
@@ -180,7 +189,7 @@ def SPM_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 
 def PM_A_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         for x, y in train_loader:
@@ -195,7 +204,7 @@ def PM_A_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 
 def PM_A_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         flag = True
@@ -213,7 +222,7 @@ def PM_A_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
                  is_adaptive=True, adp_lr=sum(lr_set)/len(lr_set))
 
 def PM_A_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         flag = True
@@ -231,7 +240,7 @@ def PM_A_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
                  is_adaptive=True, adp_lr=sum(lr_set)/len(lr_set))       
 
 def PM_A_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         for x, y in train_loader:
@@ -245,7 +254,7 @@ def PM_A_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
                  is_adaptive=True, adp_lr=sum(lr_set)/len(lr_set))
 
 def PM_A_MEAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         flag = True
@@ -265,7 +274,7 @@ def PM_A_MEAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 
 def PM_A_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         ellipsis_set = []
@@ -286,7 +295,7 @@ def PM_A_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 
 def SPM_A_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         for x, y in train_loader:
@@ -301,7 +310,7 @@ def SPM_A_Euler(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         
 
 def SPM_A_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         flag = True
@@ -319,7 +328,7 @@ def SPM_A_SAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
                  is_adaptive=True, adp_lr=sum(lr_set)/len(lr_set))
 
 def SPM_A_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         flag = True
@@ -338,7 +347,7 @@ def SPM_A_ESAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
 
 
 def SPM_A_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         for x, y in train_loader:
@@ -353,7 +362,7 @@ def SPM_A_ReSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
         
 
 def SPM_A_RelSAV(model, train_loader, X_train, Y_train, X_test, Y_test, args):
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
         cnt = 0
         lr_set = []
         ellipsis_set = []

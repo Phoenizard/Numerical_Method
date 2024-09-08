@@ -108,16 +108,12 @@ def RelESAV(model: Simple_Perceptron, N_a, N_w, lr, loss, X, Y, ratio_n = 0.99, 
         #=========Update ESAV R================
         r_wave = model.r / (1 + lr * (torch.sum(N_a * linear_N_a) + torch.sum(N_w * linear_N_w)))
         #=========Update Params================
-        model.a += model.r.item() * theta_a_2
-        model.W += model.r.item() * theta_w_2
+        model.a += r_wave.item() * theta_a_2
+        model.W += r_wave.item() * theta_w_2
         model.a.grad.zero_()
         model.W.grad.zero_()
-
-    new_loss = PM(model, X, Y)
-
-    with torch.no_grad():
         #=========Update Relaxation================
-        r_hat = torch.exp(new_loss)
+        r_hat = torch.exp(model.loss(model(X), Y).mean())
         a = (r_wave - r_hat) ** 2
         b = 2 * r_hat * (r_wave - r_hat)
         c = r_hat ** 2 - r_wave ** 2 - ratio_n * ((torch.norm(model.a.data - theta_a_1) ** 2 + torch.norm(model.W.data - theta_w_1) ** 2)) / lr

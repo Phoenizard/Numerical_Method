@@ -4,10 +4,12 @@ from data.grip_data import load_data
 from config.config import config
 import argparse
 from utils import init_wandb
-from train.train_script import PM_Euler, PM_ESAV, PM_MESAV, PM_SAV, PM_ReSAV, PM_RelSAV, SPM_Euler, SPM_ESAV, SPM_SAV, SPM_ReSAV
+from train.train_script import PM_Euler, PM_ESAV, PM_MESAV, PM_SAV, PM_ReSAV, PM_RelSAV, SPM_Euler, SPM_ESAV, SPM_SAV, SPM_ReSAV, PM_RelESAV, PM_ReESAV
 from train.train_script import PM_A_Euler, PM_A_SAV, PM_A_ESAV,PM_A_MEAV, PM_A_ReSAV, PM_A_RelSAV, SPM_A_Euler, SPM_A_SAV, SPM_A_ReSAV, SPM_A_ESAV
 from train.train_script import PM_IEQ, PM_ReIEQ, PM_RelIEQ
 import torch.multiprocessing as mp
+import warnings
+warnings.filterwarnings("ignore")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Training Script")
@@ -48,7 +50,12 @@ def main():
 
     # PM_Euler(model_1, train_loader, X_train, Y_train, X_test, Y_test, args)
     process = []
+    process.append(mp.Process(target=train_process, args=(PM_ESAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_ReESAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_RelESAV, device)))
     process.append(mp.Process(target=train_process, args=(PM_SAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_ReSAV, device)))
+    process.append(mp.Process(target=train_process, args=(PM_RelSAV, device)))
     process.append(mp.Process(target=train_process, args=(PM_IEQ, device)))
     process.append(mp.Process(target=train_process, args=(PM_ReIEQ, device)))
     process.append(mp.Process(target=train_process, args=(PM_RelIEQ, device)))

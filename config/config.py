@@ -2,16 +2,16 @@
 
 config = {
     # Dataset name
-    "dataset_name": "example_2_40D",
+    "dataset_name": "example_1_40D",
 
     # Model Hyperparameters
-    "m": 100,
-    "batch_size": 64,
+    "m": 1000,
+    "batch_size": 256,
     "epochs": 10000,
     "lr": 1,
 
     # SAV related parameters
-    "C": 1,
+    "C": 100,
     "_lambda": 4,
     "ratio_n": 0.99,
 
