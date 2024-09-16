@@ -39,7 +39,7 @@ def G_modified(X, model):
     print("计算Jacobian矩阵耗时：", end - start)
     return J
 
-def G_modified_CUDA(X, model):
+def G_modified_CUDA_V1(X, model):
     # 开始计时
     # start = time.time()
     # 确保所有张量在 CUDA 设备上
@@ -59,14 +59,14 @@ def G_modified_CUDA(X, model):
     mask = (relu_input > 0).float()  # (batch_size, m)
     
     # 使用广播机制计算 W_grad
-    W_grad = (X.unsqueeze(2) * mask.unsqueeze(1)) / m  # (batch_size, input_dim, m)
+    W_grad = (X.unsqueeze(2) * mask.unsqueeze(1))  # (batch_size, input_dim, m)
     W_grad = W_grad * model.a.view(1, 1, m)  # (batch_size, input_dim, m)
     
     # 将 W_grad 转换为二维矩阵并赋值给 J
     J[:, :m*input_dim] = W_grad.reshape(batch_size, -1)
     
     # 对 a_i 的部分并行计算 Jacobian
-    J[:, m*input_dim:] = relu_output / m
+    J[:, m*input_dim:] = relu_output
     
     # end = time.time()
     # print("CUDA计算Jacobian矩阵耗时：", end - start)
@@ -177,3 +177,36 @@ def N_grad_optimized(model, X, Y):
     # print("计算梯度耗时：", end - start)
     
     return grad_W, grad_a.reshape(-1, 1)
+
+def G_modified_CUDA(X, W, a):
+    # 开始计时
+    # start = time.time()
+    # 确保所有张量在 CUDA 设备上
+    device = X.device
+    
+    input_dim, m = W.shape  # m: 隐藏层神经元数量, input_dim: 输入维度
+    batch_size = X.shape[0]       # batch_size: 批处理大小
+    
+        # 初始化 Jacobian 矩阵 J，大小为 (batch_size, m * (input_dim + 1))
+    J = torch.zeros(batch_size, m * (input_dim + 1), device=device)
+    
+    # 计算所有样本的 <w_i, x> 和 ReLU 激活
+    relu_input = X @ W  # (batch_size, m)
+    relu_output = torch.relu(relu_input)  # (batch_size, m)
+    
+    # 对 w_i 的部分并行计算 Jacobian
+    mask = (relu_input > 0).float()  # (batch_size, m)
+    
+    # 使用广播机制计算 W_grad
+    W_grad = (X.unsqueeze(2) * mask.unsqueeze(1))  # (batch_size, input_dim, m)
+    W_grad = W_grad * a.view(1, 1, m)  # (batch_size, input_dim, m)
+    
+    # 将 W_grad 转换为二维矩阵并赋值给 J
+    J[:, :m*input_dim] = W_grad.reshape(batch_size, -1)
+    
+    # 对 a_i 的部分并行计算 Jacobian
+    J[:, m*input_dim:] = relu_output
+    
+    # end = time.time()
+    # print("CUDA计算Jacobian矩阵耗时：", end - start)
+    return J

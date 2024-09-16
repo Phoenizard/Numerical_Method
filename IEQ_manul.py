@@ -8,6 +8,7 @@ import random
 import matplotlib.pyplot as plt
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from tqdm import tqdm
+from utils import G_modified_CUDA
 
 # Set random seed for reproducibility
 np.random.seed(100)
@@ -73,51 +74,49 @@ loss = squared_loss
 train_losses = []
 test_losses = []
 
-C = 100
-_lambda = 4
-
 config = {
     "lr": lr,
     "num_epochs": num_epochs,
     "batch_size": batch_size, 
     "M": M,
-    "Optimizer": "SGD"
+    "Optimizer": "IEQ"
 }
 
-wandb.init(project="Numerical Method", name="SAV_0916_Example1_1e0")
+# wandb.init(project="Numerical Method", name="SAV_0916_Example1_1e0")
 for epoch in tqdm(range(num_epochs)):
     train_l = 0.0
     flag = 0
     for X, y in data_iter(batch_size, train_features, train_labels): 
-        l = loss(net(X, w, a), y)  # X和y的小批量损失
         if flag == 0:
             with torch.no_grad():
-                r = torch.sqrt(l.mean() + C)
+                U = (net(X, w, a) - y.reshape(-1, 1))
             flag = 1
-        l.mean().backward()
+        J = G_modified_CUDA(X, w, a)
         with torch.no_grad():
             #=====================Package Params========================
-            N_theta = torch.cat((w.grad.view(-1), a.grad.view(-1)))
             theta = torch.cat((w.view(-1), a.view(-1)))
-            #=====================Update SAV============================
-            theta_1_2 = -lr * N_theta / (torch.sqrt(l.mean() + C) * (1 + lr * _lambda))
-            r /= (1 + lr * torch.sum(N_theta * (N_theta / (1 + lr * _lambda))) / (2 * (l.mean() + C)))
-            theta += r * theta_1_2
+            #=====================Update IEQ============================
+            J_T = J.T
+            A = torch.eye(batch_size, device=device) + 2 * lr * torch.mm(J, J_T)
+            L = torch.linalg.cholesky(A)
+            A_inv = torch.cholesky_inverse(L)
+
+            U = A_inv @ U
+            theta = theta - 2 * lr * torch.mm(J_T, U)
             #=======================Update Params=======================
             w.data = theta[: (D + 1) * m].reshape(D + 1, m)
             a.data = theta[(D + 1) * m:].reshape(m, 1)
             w.grad.zero_()
             a.grad.zero_()
-        train_l += l.sum()
-    train_l = train_l / len(train_labels)
     with torch.no_grad():
+        train_l = loss(net(train_features, w, a), train_labels).mean().item()
         test_l = loss(net(test_features, w, a), test_labels).mean().item()
-        # print(f'epoch {epoch + 1}, train loss {float(train_l):8f},test loss {float(test_l):8f}')
-    wandb.log({
-        "epoch": epoch,
-        "train_loss": train_l.item(),
-        "test_loss": test_l
-    })
+        print(f'epoch {epoch + 1}, train loss {float(train_l):8f},test loss {float(test_l):8f}')
+    # wandb.log({
+    #     "epoch": epoch,
+    #     "train_loss": train_l.item(),
+    #     "test_loss": test_l
+    # })
 
 
 
