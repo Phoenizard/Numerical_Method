@@ -210,3 +210,28 @@ def G_modified_CUDA(X, W, a):
     # end = time.time()
     # print("CUDA计算Jacobian矩阵耗时：", end - start)
     return J
+
+def N_grad_V2(a, W, X, Y):
+    # start = time.time()
+    
+    # 获取模型的参数 a 和 W
+    with torch.no_grad():
+        # 前向传播计算预测值和隐藏层激活输出
+        z1 = (X @ W).relu()  # 激活后的隐藏层输出
+        y_pred = z1 @ a  # 模型的输出预测值
+
+        # 计算 grad_a 的梯度
+        error = 2 * (y_pred - Y.reshape(y_pred.shape))  # 计算误差
+        grad_a = (error * z1).mean(dim=0)  # 并行计算 grad_a
+
+        # 计算 grad_W 的梯度
+        relu_grad = (z1 > 0).float()  # ReLU 的梯度（非零部分为 1，其他为 0）
+        # print(relu_grad.shape, error.shape, a.shape, X.shape)
+        # torch.Size([64, 100]) torch.Size([64, 1]) torch.Size([100, 1]) torch.Size([64, 41])
+        weighted_error = (error @ a.t()) * relu_grad  # 误差与激活梯度和 a 的乘积
+        grad_W = torch.mm(X.t(), weighted_error) / (X.shape[0])  # 并行计算 grad_W
+        
+    # end = time.time()
+    # print("计算梯度耗时：", end - start)
+    
+    return grad_W, grad_a.reshape(-1, 1)

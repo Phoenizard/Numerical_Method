@@ -4,6 +4,7 @@ import torch.optim as optim
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
 import wandb
+import math
 import random
 import matplotlib.pyplot as plt
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -12,8 +13,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 np.random.seed(100)
 torch.manual_seed(100)
 
+def relative_error(true, predicted):
+    return torch.norm(true - predicted) / torch.norm(true)
 
-D = 40
+D = 1
 M = 100000
 batch_size = 256
 p = np.random.randn(D)
@@ -24,7 +27,6 @@ def generate_data(M, D, p, q):
     f_star = np.sin(X @ p) + np.cos(X @ q)
     # Z-score normalization
     X_normalized = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
-    # X_normalized = X
     # Add bias column
     X_normalized = np.hstack((X_normalized, np.ones((M, 1))))
     return X_normalized, f_star
@@ -53,24 +55,25 @@ def data_iter(batch_size, features, labels):
         yield features[batch_indices], labels[batch_indices]
 
 m = 1000
+init_variance_w = math.sqrt(2 / (D + 1))
+init_variance_a = math.sqrt(2 / m)
 # 定义模型参数
-w = torch.normal(0, 0.1, size=(D + 1,m), requires_grad=True, device=device)
-a = torch.normal(0, 0.1, size=(m, 1), requires_grad=True, device=device)
+w = torch.normal(0, init_variance_w, size=(D + 1,m), requires_grad=True, device=device)
+a = torch.normal(0, init_variance_a, size=(m, 1), requires_grad=True, device=device)
 
 def simple_net(X, w, a):
-    return (X @ w).relu() @ a / m
+    return (X @ w).tanh() @ a / m
 
 def squared_loss(y_hat, y):
     y = y.reshape(y_hat.shape)
     return ((y_hat - y) ** 2)
 
-def sgd(params, lr, batch_size):  #@save
+def sgd(params, lr, batch_size):
     """小批量随机梯度下降"""
     with torch.no_grad():
         for param in params:
             param -= lr * param.grad / batch_size
             param.grad.zero_()
-
 
 lr = 0.01
 num_epochs = 10000
@@ -88,24 +91,26 @@ config = {
     "Optimizer": "SGD"
 }
 
-# wandb.init(project="Numerical Method", name="SGD_0916_Example1_1e2")
-
+wandb.init(project="Numerical Method", name="SGD_Manual_D1_256", config=config)
 for epoch in range(num_epochs):
     train_l = 0.0
     for X, y in data_iter(batch_size, train_features, train_labels): 
         l = loss(net(X, w, a), y)  # X和y的小批量损失
         l.sum().backward()
         sgd([w, a], lr, batch_size)  # 使用参数的梯度更新参数
-        train_l += l.sum()
-    train_l = train_l / len(train_labels)
     with torch.no_grad():
+        train_l = loss(net(train_features, w, a), train_labels).mean().item()
         test_l = loss(net(test_features, w, a), test_labels).mean().item()
-        print(f'epoch {epoch + 1}, train loss {float(train_l):8f},test loss {float(test_l):8f}')
-    # wandb.log({
-    #     "epoch": epoch,
-    #     "train_loss": train_l.item(),
-    #     "test_loss": test_l
-    # })
+        rel_train_l = relative_error(train_labels, net(train_features, w, a)).item()
+        rel_test_l = relative_error(test_labels, net(test_features, w, a)).item()
+        # print(f'epoch {epoch + 1}, train loss {float(train_l):8f},test loss {float(test_l):8f}')
+    wandb.log({
+        "epoch": epoch,
+        "train_loss": train_l,
+        "test_loss": test_l,
+        "relative_train_loss": rel_train_l,
+        "relative_test_loss": rel_test_l
+    })
 
 
 

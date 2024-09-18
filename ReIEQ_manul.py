@@ -79,18 +79,14 @@ config = {
     "num_epochs": num_epochs,
     "batch_size": batch_size, 
     "M": M,
-    "Optimizer": "IEQ"
+    "Optimizer": "Restart IEQ"
 }
 
 wandb.init(project="Numerical Method", name="IEQ_0916_Example1_5e1")
 for epoch in tqdm(range(num_epochs)):
     train_l = 0.0
-    flag = 0
     for X, y in data_iter(batch_size, train_features, train_labels): 
-        if flag == 0:
-            with torch.no_grad():
-                U = (net(X, w, a) - y.reshape(-1, 1))
-            flag = 1
+        U = (net(X, w, a) - y.reshape(-1, 1))
         if X.shape[0] < batch_size:
             continue
         J = G_modified_CUDA(X, w, a)

@@ -8,6 +8,7 @@ import random
 import matplotlib.pyplot as plt
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from tqdm import tqdm
+from utils import N_grad_V2
 
 # Set random seed for reproducibility
 np.random.seed(100)
@@ -55,6 +56,7 @@ def data_iter(batch_size, features, labels):
 
 m = 1000
 # 定义模型参数
+
 w = torch.normal(0, 0.1, size=(D + 1,m), requires_grad=True, device=device)
 a = torch.normal(0, 0.1, size=(m, 1), requires_grad=True, device=device)
 
@@ -84,7 +86,7 @@ config = {
     "Optimizer": "SGD"
 }
 
-wandb.init(project="Numerical Method", name="SAV_0916_Example1_1e0")
+wandb.init(project="Numerical Method", name="SAV_0916_Example1_1e0_manulgrad")
 for epoch in tqdm(range(num_epochs)):
     train_l = 0.0
     flag = 0
@@ -94,10 +96,10 @@ for epoch in tqdm(range(num_epochs)):
             with torch.no_grad():
                 r = torch.sqrt(l.mean() + C)
             flag = 1
-        l.mean().backward()
+        w_grad, a_grad = N_grad_V2(a, w, X, y)
         with torch.no_grad():
             #=====================Package Params========================
-            N_theta = torch.cat((w.grad.view(-1), a.grad.view(-1)))
+            N_theta = torch.cat((w_grad.view(-1), a_grad.view(-1)))
             theta = torch.cat((w.view(-1), a.view(-1)))
             #=====================Update SAV============================
             theta_1_2 = -lr * N_theta / (torch.sqrt(l.mean() + C) * (1 + lr * _lambda))
@@ -106,16 +108,15 @@ for epoch in tqdm(range(num_epochs)):
             #=======================Update Params=======================
             w.data = theta[: (D + 1) * m].reshape(D + 1, m)
             a.data = theta[(D + 1) * m:].reshape(m, 1)
-            w.grad.zero_()
-            a.grad.zero_()
-        train_l += l.sum()
-    train_l = train_l / len(train_labels)
+            # w.grad.zero_()
+            # a.grad.zero_()
     with torch.no_grad():
+        train_l = loss(net(train_features, w, a), train_labels).mean().item()
         test_l = loss(net(test_features, w, a), test_labels).mean().item()
         # print(f'epoch {epoch + 1}, train loss {float(train_l):8f},test loss {float(test_l):8f}')
     wandb.log({
         "epoch": epoch,
-        "train_loss": train_l.item(),
+        "train_loss": train_l,
         "test_loss": test_l
     })
 

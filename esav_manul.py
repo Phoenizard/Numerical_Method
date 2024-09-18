@@ -8,7 +8,7 @@ import random
 import matplotlib.pyplot as plt
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from tqdm import tqdm
-from utils import G_modified_CUDA
+from utils import N_grad_V2
 
 # Set random seed for reproducibility
 np.random.seed(100)
@@ -74,37 +74,38 @@ loss = squared_loss
 train_losses = []
 test_losses = []
 
+_lambda = 4
+C = 1
+
 config = {
     "lr": lr,
     "num_epochs": num_epochs,
     "batch_size": batch_size, 
     "M": M,
-    "Optimizer": "IEQ"
+    "Optimizer": "ESAV"
 }
 
-wandb.init(project="Numerical Method", name="IEQ_0916_Example1_5e1")
+wandb.init(project="Numerical Method", name="ESAV_0916_Example1_5e1")
 for epoch in tqdm(range(num_epochs)):
     train_l = 0.0
     flag = 0
     for X, y in data_iter(batch_size, train_features, train_labels): 
+        l = loss(net(X, w, a), y)  # X和y的小批量损失
         if flag == 0:
             with torch.no_grad():
-                U = (net(X, w, a) - y.reshape(-1, 1))
+                r = torch.exp(l.mean()) / C
             flag = 1
-        if X.shape[0] < batch_size:
-            continue
-        J = G_modified_CUDA(X, w, a)
+        w_grad, a_grad = N_grad_V2(a, w, X, y)
         with torch.no_grad():
             #=====================Package Params========================
-            theta = torch.cat((w.view(-1), a.view(-1))).reshape(-1, 1)
-            #=====================Update IEQ============================
-            J_T = J.T
-            A = torch.eye(batch_size, device=device) + 2 * lr * torch.mm(J, J_T)
-            L = torch.linalg.cholesky(A)
-            A_inv = torch.cholesky_inverse(L)
-
-            U = A_inv @ U
-            theta = (theta - 2 * lr * torch.mm(J_T, U)).reshape(-1)
+            N_theta = torch.cat((w_grad.view(-1), a_grad.view(-1)))
+            theta = torch.cat((w.view(-1), a.view(-1)))
+            #=====================Update ESAV============================
+            alpha = 1 / lr + _lambda
+            beta = torch.sum(N_theta * N_theta)
+            r = alpha / (alpha + beta) * r
+            theta_1_2 = - C * N_theta / (alpha * torch.exp(l.mean()))
+            theta += r.item() * theta_1_2
             #=======================Update Params=======================
             w.data = theta[: (D + 1) * m].reshape(D + 1, m)
             a.data = theta[(D + 1) * m:].reshape(m, 1)
